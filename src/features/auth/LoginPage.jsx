@@ -2,6 +2,7 @@
  * Login screen with the animated logo. Fast: two fields and one button.
  * Demo mode accepts any credentials; with Supabase it uses email + password auth.
  */
+import { LOGO_URL } from '@/lib/assets';
 import { useEffect, useState } from 'react';
 import { useApp } from '@/state/AppProvider';
 import { Icon } from '@/components/ui/Icon';
@@ -79,7 +80,7 @@ function AnimatedLogo({ spun, success }) {
   return (
     <div className={s.logo}>
       {success && <div className={s.ring} />}
-      <img src="/logo.png" alt="Barri Vell" className={s.logoImg} />
+      <img src={LOGO_URL} alt="Barri Vell" className={s.logoImg} />
       <div className={s.clock}>
         <span className={s.hand} style={{ height: 11, transform: `rotate(${spun ? 300 : -60}deg)` }} />
         <span className={s.hand} style={{ height: 15, transform: `rotate(${spun ? (success ? 420 : 60) : -300}deg)` }} />

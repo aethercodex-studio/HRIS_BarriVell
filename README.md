@@ -14,6 +14,15 @@ npm run build             # versión de producción en /dist
 
 **Modo demo** (sin Supabase): los datos se guardan en el navegador (localStorage) y se carga un juego de datos de ejemplo. Se entra con cualquier correo y contraseña.
 
+## Publicar en GitHub Pages
+
+GitHub Pages no puede ejecutar el código fuente (`/src/main.jsx` da error 404): hay que **compilarlo** y publicar la carpeta `dist`. El repositorio ya incluye un flujo que lo hace solo:
+
+1. Sube el proyecto tal cual a la rama `main` (incluida la carpeta `.github/`).
+2. En GitHub: **Settings → Pages → Source: GitHub Actions**.
+3. (Opcional, para usar Supabase) **Settings → Secrets and variables → Actions** → añade `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+4. Cada `push` a `main` compila y publica en `https://<usuario>.github.io/<repositorio>/`. Puedes ver el progreso en la pestaña **Actions**.
+
 ## Conectar Supabase
 
 1. Crea un proyecto en supabase.com (plan gratuito).

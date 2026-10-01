@@ -2,6 +2,7 @@
  * App frame: left sidebar on desktop, top bar + bottom tab bar on mobile.
  * The switch is pure CSS (see layout.module.css), no JS needed.
  */
+import { LOGO_URL } from '@/lib/assets';
 import { useApp } from '@/state/AppProvider';
 import { PAGES, useNav } from '@/state/NavContext';
 import { Icon } from '@/components/ui/Icon';
@@ -36,7 +37,7 @@ export function AppShell({ children }) {
       <div className={s.content}>
         {/* Mobile top bar */}
         <header className={s.topbar}>
-          <img src="/logo.png" alt="" width={34} height={34} />
+          <img src={LOGO_URL} alt="" width={34} height={34} />
           <span className={s.topTitle}>HRIS Barri Vell</span>
           <button className={s.topLogout} onClick={signOut} aria-label="Cerrar sesión">
             <Icon name="logout" size={20} />
@@ -63,7 +64,7 @@ export function AppShell({ children }) {
 function Brand() {
   return (
     <div className={s.brand}>
-      <img src="/logo.png" alt="Barri Vell" width={42} height={42} />
+      <img src={LOGO_URL} alt="Barri Vell" width={42} height={42} />
       <div className={s.brandText}>
         <span className={s.brandEyebrow}>HRIS</span>
         <span className={s.brandName}>Barri Vell</span>
