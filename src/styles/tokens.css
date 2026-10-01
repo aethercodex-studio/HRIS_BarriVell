@@ -1,0 +1,56 @@
+/* Design tokens — every colour, radius and font used by the app. */
+:root {
+  /* Surfaces */
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --surface-2: #faf9f6;
+  --surface-3: #efece5;
+  --cream: #f4efe6;
+
+  /* Ink */
+  --ink: #16181a;
+  --ink-2: #3b3f44;
+  --ink-3: #6b6f73;
+  --ink-4: #9a9da0;
+
+  /* Lines */
+  --line: #e6e2d9;
+  --line-2: #efece5;
+  --line-input: #dcd8ce;
+
+  /* Brand (from the Barri Vell logo) */
+  --blue: #2ea9e1;
+  --blue-strong: #1572a8;
+  --blue-tint: #dcf0fa;
+  --orange: #f29100;
+  --red: #e63229;
+  --teal: #13a09a;
+  --yellow: #f9b233;
+
+  /* Semantic */
+  --success-bg: #d3efed;
+  --success-fg: #0b5e5a;
+  --warning-bg: #fde9cc;
+  --warning-fg: #7a4a00;
+  --warning-ink: #a15c00;
+  --danger: #c62b22;
+  --danger-bg: #fbdcda;
+  --danger-line: #f0c2bf;
+
+  /* Type */
+  --font-body: 'Figtree', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', var(--font-body);
+
+  /* Radii */
+  --r-sm: 10px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-pop: 0 12px 30px rgba(22, 24, 26, 0.12);
+  --shadow-modal: 0 24px 60px rgba(22, 24, 26, 0.22);
+
+  /* Motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}

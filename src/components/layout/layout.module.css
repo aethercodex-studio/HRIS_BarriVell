@@ -1,0 +1,59 @@
+.shell { display: flex; min-height: 100vh; }
+
+/* ── Sidebar (desktop) ── */
+.sidebar {
+  width: 244px; flex: none; position: sticky; top: 0; height: 100vh;
+  background: var(--surface); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 22px; padding: 20px 14px 16px;
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+.brandText { display: flex; flex-direction: column; line-height: 1.1; }
+.brandEyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: var(--ink-3); }
+.brandName { font-family: var(--font-display); font-size: 19px; font-weight: 700; }
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.navItem {
+  display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px;
+  border: none; border-radius: var(--r-md); background: transparent; color: var(--ink-2);
+  font-size: 15.5px; font-weight: 700; text-align: left;
+}
+.navItem:hover { background: #f3f8fb; }
+.navOn, .navOn:hover { background: var(--blue-tint); color: #0f5683; }
+.sideFoot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding: 0 6px; }
+.mode { font-size: 12.5px; color: var(--ink-3); line-height: 1.35; }
+.logout {
+  display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface);
+  font-size: 14px; font-weight: 700; color: var(--ink-2);
+}
+
+/* ── Content ── */
+.content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.main { flex: 1; min-width: 0; padding: 28px 32px 48px; }
+
+/* ── Mobile chrome (hidden on desktop) ── */
+.topbar, .tabbar { display: none; }
+
+@media (max-width: 899px) {
+  .sidebar { display: none; }
+  .main { padding: 16px 14px 104px; }
+  :global(:root) { --bottom-nav: 72px; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 30; height: 58px; display: flex; align-items: center; gap: 10px;
+    padding: 0 14px; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+  }
+  .topTitle { font-family: var(--font-display); font-size: 18px; font-weight: 700; flex: 1; }
+  .topLogout { width: 44px; height: 44px; border: none; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--ink-2); }
+
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; display: grid; grid-template-columns: repeat(5, 1fr);
+    background: var(--surface); border-top: 1px solid var(--line); padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; min-height: 52px;
+    border: none; background: none; color: var(--ink-3); font-size: 10.5px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .tabIcon { width: 44px; height: 28px; border-radius: var(--r-pill); display: grid; place-items: center; }
+  .tabOn { color: var(--ink); }
+  .tabOn .tabIcon { background: var(--blue-tint); }
+}
