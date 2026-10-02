@@ -43,6 +43,8 @@ export function EmployeeDrawer() {
       nightRate: parseDecimal(draft.nightRate),
       contractHours: parseDecimal(draft.contractHours),
       groupId: draft.groupId || null,
+      fechaAlta: draft.fechaAlta || null,
+      fechaBaja: draft.fechaBaja || null,
     };
     if (mode === 'new') {
       const newId = update(actions.createEmployee, fields);

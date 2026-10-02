@@ -10,14 +10,14 @@ import { addDays, parseYmd, toYmd, todayYmd } from '@/lib/dates';
 
 /* ───────────── Employees ───────────── */
 
-/** Creates a worker. Hire date (fecha de alta) is set automatically to today. */
+/** Creates a worker. Hire date defaults to today (editable in the form). */
 export function createEmployee(draft, fields) {
   const employee = {
     ...fields,
     id: uid('e'),
     active: true,
-    fechaAlta: todayYmd(),
-    fechaBaja: null,
+    fechaAlta: fields.fechaAlta || todayYmd(),
+    fechaBaja: fields.fechaBaja || null,
     altaSolicitada: null,
   };
   draft.employees.push(employee);

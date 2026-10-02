@@ -1,13 +1,12 @@
 /**
- * Create / edit worker form. Hire date is never typed: it is set automatically
- * when the worker is created (see domain/actions.createEmployee).
+ * Create / edit worker form. Hire and leave dates are filled automatically
+ * (on create / on deactivate) but can be corrected here.
  */
 import { useApp } from '@/state/AppProvider';
 import { useLookups } from '@/state/useLookups';
 import { Field, Select, TextInput, Toggle } from '@/components/ui';
 import { Icon } from '@/components/ui/Icon';
 import { DNI_IMAGE_MAX_PX } from '@/config/constants';
-import { formatDate } from '@/lib/format';
 import { todayYmd } from '@/lib/dates';
 import { downscaleImage } from '@/lib/utils';
 import { Section } from './EmployeeDetails';
@@ -16,12 +15,12 @@ import s from './employees.module.css';
 export const emptyEmployeeDraft = (companyId = '') => ({
   nombre: '', apellidos: '', dni: '', tel: '', email: '', rate: '', nightRate: '', contractHours: '',
   prl: false, companyId, locals: [], groupId: '', nss: '', iban: '', nacimiento: '', direccion: '',
-  dniFront: null, dniBack: null,
+  dniFront: null, dniBack: null, fechaAlta: todayYmd(), fechaBaja: '',
 });
 
 const toText = (v) => (v == null ? '' : String(v).replace('.', ','));
 export const employeeToDraft = (e) => ({
-  ...e, rate: toText(e.rate), nightRate: toText(e.nightRate), contractHours: toText(e.contractHours), groupId: e.groupId || '', locals: [...e.locals],
+  ...e, fechaAlta: e.fechaAlta || '', fechaBaja: e.fechaBaja || '', rate: toText(e.rate), nightRate: toText(e.nightRate), contractHours: toText(e.contractHours), groupId: e.groupId || '', locals: [...e.locals],
 });
 
 export function EmployeeForm({ draft, setDraft, errors, isNew, employeeId }) {
@@ -37,10 +36,6 @@ export function EmployeeForm({ draft, setDraft, errors, isNew, employeeId }) {
     if (!file) return;
     set(key)(await downscaleImage(file, DNI_IMAGE_MAX_PX));
   }
-
-  const hireNote = isNew
-    ? `La fecha de contratación se guardará automáticamente: hoy, ${formatDate(todayYmd())}.`
-    : `Fecha de contratación: ${formatDate(data.employees.find((e) => e.id === employeeId)?.fechaAlta)}`;
 
   return (
     <div className={s.details}>
@@ -83,7 +78,9 @@ export function EmployeeForm({ draft, setDraft, errors, isNew, employeeId }) {
             {!data.locals.length && <span className="muted">Crea locales en Configuración para poder asignarlos.</span>}
           </div>
         </div>
-        <span className={`muted ${s.full}`} style={{ fontSize: 13 }}>{hireNote}</span>
+        <Field label="Fecha de contratación"><TextInput type="date" value={draft.fechaAlta} onChange={set('fechaAlta')} /></Field>
+        <Field label="Fecha de baja"><TextInput type="date" value={draft.fechaBaja} onChange={set('fechaBaja')} /></Field>
+        <span className={`muted ${s.full}`} style={{ fontSize: 13 }}>Se rellenan solas al crear y al dar de baja, pero puedes corregirlas aquí.</span>
       </Section>
 
       <Section title="Documentación">
