@@ -37,12 +37,12 @@ export function createSeedData() {
     { id: 'l2', companyId: 'c1', name: 'Lola' },
     { id: 'l3', companyId: 'c2', name: 'River' },
   ];
+  // Groups g1/g4/g5 are folded into Camarero/Cocinero by data/migrate.js.
   const groups = [
     { id: 'g1', name: 'Encargado', color: 3 },
     { id: 'g2', name: 'Camarero', color: 0 },
     { id: 'g3', name: 'Cocinero', color: 1 },
     { id: 'g4', name: 'Jefe de cocina', color: 2 },
-    { id: 'g5', name: 'Ayudante de cocina', color: 4 },
   ];
   const employees = [
     employee('e1', 'Martí', 'Puig Soler', { dni: '47812345K', tel: '612 345 678', email: 'marti.puig@gmail.com', rate: 14, nightRate: 16.5, contractHours: 40, prl: true, locals: ['l1', 'l2'], groupId: 'g1' }),
@@ -71,5 +71,5 @@ export function createSeedData() {
     }
   }
 
-  return { companies, locals, groups, employees, shifts, daysOff, settings: { ...DEFAULT_SETTINGS } };
+  return { companies, locals, groups, employees, shifts, daysOff, files: [], nominas: [], settings: { ...DEFAULT_SETTINGS } };
 }

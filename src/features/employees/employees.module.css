@@ -67,6 +67,24 @@
 .textarea { width: 100%; border: 1px solid var(--line-input); border-radius: var(--r-md); padding: 12px 14px; font-size: 15px; line-height: 1.5; resize: vertical; background: var(--surface); }
 .mailBtn { display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: var(--r-pill); background: var(--ink); color: #fff !important; font-weight: 700; text-decoration: none; }
 
+/* Request chooser */
+.option { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; border: 1.5px solid var(--line-input); border-radius: 16px; background: var(--surface); text-align: left; }
+.option:hover { border-color: var(--ink); background: var(--surface-2); }
+.optionIcon { width: 44px; height: 44px; border-radius: var(--r-md); background: var(--blue-tint); color: #0f5683; display: grid; place-items: center; flex: none; }
+.optionText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.optionText strong { font-size: 16px; }
+
+/* Files */
+.filesHead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filesHead h3 { flex: 1; }
+.uploadBtn { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border: 1.5px solid var(--ink); border-radius: var(--r-pill); background: var(--surface); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.fileRow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-md); background: var(--bg); }
+.fileIcon { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; flex: none; }
+.fileText { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14.5px; }
+.fileText strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fileText small { font-size: 12.5px; }
+.fileDel { width: 34px; height: 34px; border: 1px solid var(--danger-line); border-radius: 50%; background: var(--surface); color: var(--danger); display: grid; place-items: center; flex: none; }
+
 @media (max-width: 899px) {
   .stats { grid-template-columns: 1fr; }
 }

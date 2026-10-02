@@ -22,7 +22,7 @@ export function EmployeeDrawer() {
     mode === 'new' ? emptyEmployeeDraft(data.companies[0]?.id) : employee ? employeeToDraft(employee) : null,
   );
   const [errors, setErrors] = useState({});
-  const [mailOpen, setMailOpen] = useState(false);
+  const [mailKind, setMailKind] = useState(null); // null | 'alta' | 'prl'
 
   // Re-initialise the draft when switching from view → edit.
   const startEdit = () => {
@@ -75,12 +75,12 @@ export function EmployeeDrawer() {
         }
       >
         {mode === 'view' ? (
-          <EmployeeDetails employee={employee} onEdit={startEdit} onMail={() => setMailOpen(true)} />
+          <EmployeeDetails employee={employee} onEdit={startEdit} onMail={setMailKind} />
         ) : (
           <EmployeeForm draft={draft} setDraft={setDraft} errors={errors} isNew={mode === 'new'} employeeId={id} />
         )}
       </Drawer>
-      {mailOpen && employee && <GestoriaEmailModal employee={employee} onClose={() => setMailOpen(false)} />}
+      {mailKind && employee && <GestoriaEmailModal kind={mailKind} employee={employee} onClose={() => setMailKind(null)} />}
     </>
   );
 }

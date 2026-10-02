@@ -1,7 +1,13 @@
 /**
- * Read-only worker card: status, actions, hours, contract, contact and documents.
+ * Read-only worker card: status, actions, hours, contract, contact, documents and files.
+ * "Solicitudes gestoría" asks which request to send (alta or PRL).
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { repository } from '@/data';
+import { MAX_FILE_MB } from '@/config/constants';
+import { Modal } from '@/components/ui';
+import { Icon } from '@/components/ui/Icon';
+import { downloadFile } from '@/lib/utils';
 import { useApp } from '@/state/AppProvider';
 import { useNav } from '@/state/NavContext';
 import { useLookups } from '@/state/useLookups';
@@ -12,7 +18,9 @@ import { hoursByEmployee } from '@/domain/hours';
 import * as actions from '@/domain/actions';
 import s from './employees.module.css';
 
+/** onMail(kind) opens the email modal for 'alta' or 'prl'. */
 export function EmployeeDetails({ employee: e, onEdit, onMail }) {
+  const [chooser, setChooser] = useState(false);
   const { data, update, confirm, showToast } = useApp();
   const { closeEmployee } = useNav();
   const lk = useLookups();
@@ -62,7 +70,7 @@ export function EmployeeDetails({ employee: e, onEdit, onMail }) {
 
       <div className="toolbar">
         <Button variant="primary" icon="pencil" onClick={onEdit}>Editar</Button>
-        <Button icon="mail" onClick={onMail}>Solicitar alta a gestoría</Button>
+        <Button icon="mail" onClick={() => setChooser(true)}>Solicitudes gestoría</Button>
         <Button onClick={toggleActive}>{e.active ? 'Dar de baja' : 'Reactivar'}</Button>
       </div>
 
@@ -71,7 +79,7 @@ export function EmployeeDetails({ employee: e, onEdit, onMail }) {
 
       <div className={s.stats}>
         <Stat value={`${formatHours(stats.month)} h`} label={`este mes · ${formatHours(stats.monthNight)} h noche`} />
-        <Stat value={`${formatHours(stats.week)} h`} label={e.contractHours != null ? `esta semana de ${formatHours(e.contractHours)} h de contrato` : 'esta semana'} bar={weekPct} />
+        <Stat value={e.contractHours != null ? `Contrato de ${formatHours(e.contractHours)} h` : 'Sin contrato'} label={`Esta semana lleva ${formatHours(stats.week)} h`} bar={weekPct} small />
         <Stat value={e.rate != null ? formatEuro(e.rate) : '—'} label={`por hora · nocturna ${e.nightRate != null ? formatEuro(e.nightRate) : 'sin informar'}`} />
       </div>
 
@@ -85,6 +93,7 @@ export function EmployeeDetails({ employee: e, onEdit, onMail }) {
         <Info label="Fecha de contratación" value={formatDate(e.fechaAlta)} />
         <Info label="Fecha de baja" value={formatDate(e.fechaBaja)} />
         {e.altaSolicitada && <Info label="Alta solicitada" value={formatDate(e.altaSolicitada)} />}
+        {e.prlSolicitado && <Info label="PRL solicitado" value={formatDate(e.prlSolicitado)} />}
       </Section>
 
       <Section title="Contacto y datos personales">
@@ -104,14 +113,97 @@ export function EmployeeDetails({ employee: e, onEdit, onMail }) {
         </div>
       </Section>
 
+      <FilesSection employee={e} />
+
       <Button variant="danger" onClick={remove} style={{ alignSelf: 'flex-start' }}>Eliminar empleado</Button>
+
+      {chooser && (
+        <Modal title="¿Qué quieres solicitar?" onClose={() => setChooser(false)} width={440}>
+          <RequestOption icon="userPlus" title="Solicitar alta" info={e.altaSolicitada ? `Solicitada el ${formatDate(e.altaSolicitada)}` : 'Pendiente de solicitar'} onClick={() => { setChooser(false); onMail('alta'); }} />
+          <RequestOption icon="shield" title="Solicitar PRL" info={e.prlSolicitado ? `Solicitada el ${formatDate(e.prlSolicitado)}` : e.prl ? 'PRL ya hecho' : 'Pendiente de solicitar'} onClick={() => { setChooser(false); onMail('prl'); }} />
+        </Modal>
+      )}
     </div>
   );
 }
 
-const Stat = ({ value, label, bar }) => (
+const RequestOption = ({ icon, title, info, onClick }) => (
+  <button className={s.option} onClick={onClick}>
+    <span className={s.optionIcon}><Icon name={icon} size={20} /></span>
+    <span className={s.optionText}><strong>{title}</strong><span className="muted">{info}</span></span>
+    <Icon name="right" color="var(--ink-4)" />
+  </button>
+);
+
+/**
+ * Ficheros: contract, PRL documentation, payslips… Upload, download, delete.
+ * Files go through the repository (Supabase Storage, or data URLs in demo mode).
+ */
+function FilesSection({ employee: e }) {
+  const { data, update, confirm, showToast } = useApp();
+  const files = data.files.filter((f) => f.empId === e.id);
+  const [busy, setBusy] = useState(false);
+
+  async function upload(list) {
+    setBusy(true);
+    for (const file of list) {
+      if (file.size > MAX_FILE_MB * 1048576) {
+        showToast(`${file.name} supera ${MAX_FILE_MB} MB`);
+        continue;
+      }
+      try {
+        const path = await repository.uploadFile(e.id, file);
+        update(actions.addFile, { empId: e.id, name: file.name, size: file.size, mime: file.type, path });
+        showToast(`Fichero añadido: ${file.name}`);
+      } catch {
+        showToast(`No se ha podido subir ${file.name}`);
+      }
+    }
+    setBusy(false);
+  }
+
+  async function download(f) {
+    try {
+      downloadFile(await repository.fileUrl(f.path), f.name);
+    } catch {
+      showToast('No se ha podido descargar el fichero');
+    }
+  }
+
+  async function remove(f) {
+    if (!(await confirm([{ title: '¿Eliminar el fichero?', text: `${f.name} se borrará de la ficha.`, label: 'Eliminar', danger: true }]))) return;
+    await repository.removeFile(f.path).catch(() => {});
+    update(actions.removeFile, f.id);
+  }
+
+  const size = (b) => (b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1048576).toFixed(1).replace('.', ',')} MB`);
+
+  return (
+    <section className={`card ${s.section}`}>
+      <div className={s.filesHead}>
+        <h3 className={s.sectionTitle}>Ficheros</h3>
+        <label className={s.uploadBtn}>
+          <Icon name="upload" size={16} />
+          {busy ? 'Subiendo…' : 'Subir fichero'}
+          <input type="file" multiple hidden disabled={busy} onChange={(ev) => { upload([...ev.target.files]); ev.target.value = ''; }} />
+        </label>
+      </div>
+      {!files.length && <span className="muted" style={{ fontSize: 14 }}>Aún no hay ficheros. Sube aquí el contrato, la documentación PRL, nóminas… (máx. {MAX_FILE_MB} MB cada uno)</span>}
+      {files.map((f) => (
+        <div key={f.id} className={s.fileRow}>
+          <span className={s.fileIcon}><Icon name="file" size={17} /></span>
+          <span className={s.fileText}><strong>{f.name}</strong><small className="muted">{size(f.size)} · {formatDate(f.date)}</small></span>
+          <Button size="sm" onClick={() => download(f)}>Descargar</Button>
+          <button className={s.fileDel} aria-label="Eliminar fichero" onClick={() => remove(f)}><Icon name="x" size={15} /></button>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+const Stat = ({ value, label, bar, small }) => (
   <div className={`card ${s.stat}`}>
-    <span className={s.statValue}>{value}</span>
+    <span className={s.statValue} style={small ? { fontSize: 20, lineHeight: 1.15 } : undefined}>{value}</span>
     <span className={s.statLabel}>{label}</span>
     {bar != null && <span className={s.bar}><span style={{ width: `${bar}%` }} /></span>}
   </div>

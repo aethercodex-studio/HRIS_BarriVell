@@ -7,8 +7,9 @@
  *   auth.signOut(): Promise<void>
  *   load(): Promise<Data>
  *   save(previous: Data|null, next: Data): Promise<void>
+ *   uploadFile(empId, File): Promise<path>   fileUrl(path): Promise<url>   removeFile(path)
  *
- * Data shape: { companies, locals, groups, employees, shifts, daysOff, settings }
+ * Data shape: { companies, locals, groups, employees, shifts, daysOff, files, nominas, settings }
  */
 import { SUPABASE_ENABLED } from '@/config/env';
 import { createLocalRepository } from './localRepository';

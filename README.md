@@ -3,6 +3,8 @@
 Gestión de empleados, turnos y horas para pequeños negocios de hostelería con varias empresas y locales.
 Interfaz en español, responsive (móvil y escritorio). React + Vite, con Supabase como base de datos (plan gratuito).
 
+> **¿Primera vez?** Sigue [`GUIA_INSTALACION.md`](GUIA_INSTALACION.md): base de datos, importación de datos y publicación en GitHub Pages paso a paso.
+
 ## Puesta en marcha
 
 ```bash
@@ -26,8 +28,9 @@ GitHub Pages no puede ejecutar el código fuente (`/src/main.jsx` da error 404):
 ## Conectar Supabase
 
 1. Crea un proyecto en supabase.com (plan gratuito).
-2. SQL Editor → pega y ejecuta `supabase/schema.sql` (tablas, índices y seguridad RLS).
-3. Authentication → Users → *Add user*: crea el único usuario que entrará.
+2. SQL Editor → pega y ejecuta `supabase/schema.sql` (tablas, seguridad RLS y bucket de ficheros).
+   Opcional: `supabase/import_vermuteria_river.sql` importa trabajadores y turnos de Vermuteria y River.
+3. Authentication → Users → *Add user*: crea el único usuario que entrará. **Desactiva el registro** (Sign In / Providers → *Allow new users to sign up*).
 4. Project Settings → API → copia `URL` y `anon key` en `.env`:
    ```
    VITE_SUPABASE_URL=https://xxxx.supabase.co
@@ -60,7 +63,8 @@ src/
 ├── data/                    Persistencia intercambiable
 │   ├── index.js             Elige repositorio (Supabase o local)
 │   ├── localRepository.js   Modo demo (localStorage)
-│   ├── supabaseRepository.js  Supabase: guarda solo lo que cambia
+│   ├── supabaseRepository.js  Supabase: guarda solo lo que cambia + ficheros en Storage
+│   ├── migrate.js       Actualiza datos antiguos a la versión actual
 │   ├── mappers.js           camelCase (app) ↔ snake_case (tablas)
 │   └── seed.js              Datos de ejemplo
 ├── state/
@@ -96,7 +100,11 @@ Para añadir una pantalla, crea `features/<nombre>/` y regístrala en `PAGES` (`
 
 - **Noche**: de 22:00 a 06:00 (`config/constants.js`). Un turno que pasa de medianoche cuenta para el día en que empieza.
 - **€/h nocturna sin informar**: las horas nocturnas se pagan a €/h normal y se muestra el aviso «Este trabajador no tiene el precio por hora nocturna informada».
-- **Nómina / fuera de nómina**: las horas hasta el contrato del periodo van a nómina; el resto, fuera. En el mes, el contrato semanal se escala por los días del mes. Sin contrato informado → todo fuera de nómina.
+- **Nómina / fuera de nómina**: el usuario escribe el *Importe nómina* de cada trabajador y periodo; *Fuera de nómina* = Importe total − Importe nómina.
+- **€/h nocturna**: por defecto igual que €/h; al escribir €/h en la ficha se copia automáticamente.
+- **Grupos**: Camarero y Cocinero (se pueden crear más). El calendario se filtra por grupo con botones.
+- **Solicitudes gestoría**: alta o PRL, cada una con su plantilla en Configuración.
+- **Ficheros**: contrato, PRL, nóminas… por trabajador (máx. 3 MB), guardados en Supabase Storage.
 - **Días libres**: no se pagan. Mover un libre a otro día intercambia los turnos de ese día.
 - **Fechas automáticas**: alta = día de creación; baja = día de desactivación (y se borran los turnos futuros).
 - **Borrar empresa o local**: doble confirmación.
@@ -105,5 +113,5 @@ Para añadir una pantalla, crea `features/<nombre>/` y regístrala en `PAGES` (`
 ## Próximos pasos sugeridos
 
 - Envío automático del correo de alta con adjuntos mediante una Edge Function de Supabase (p. ej. con Resend).
-- Guardar las imágenes del DNI en Supabase Storage en lugar de en la tabla.
+- Mover también las imágenes del DNI a Supabase Storage (hoy van reducidas dentro de la tabla).
 - Tests unitarios de `domain/` (Vitest).

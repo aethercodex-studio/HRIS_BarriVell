@@ -14,12 +14,13 @@ import s from './calendar.module.css';
 
 const MAX_NAMES = 4;
 
-export function MonthView({ local, month, onPickDay }) {
+export function MonthView({ local, month, groupId = 'all', onPickDay }) {
   const { data } = useApp();
   const { openEmployee } = useNav();
   const lk = useLookups();
   const isMobile = useIsMobile();
   const today = todayYmd();
+  const inGroup = (e) => groupId === 'all' || e?.groupId === groupId;
   const m = parseYmd(month);
   const from = toYmd(firstOfMonth(m));
   const to = toYmd(lastOfMonth(m));
@@ -30,18 +31,18 @@ export function MonthView({ local, month, onPickDay }) {
       const date = toYmd(d);
       const people = [...new Set(data.shifts.filter((x) => x.localId === local.id && x.date === date).map((x) => x.empId))]
         .map((id) => lk.employees[id])
-        .filter(Boolean)
+        .filter((e) => e && inGroup(e))
         .sort(lk.byGroupThenName);
       out.push({ date, inMonth: d.getMonth() === m.getMonth(), people });
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.shifts, local.id, month, lk]);
+  }, [data.shifts, local.id, month, lk, groupId]);
 
   const summary = useMemo(() => {
     const agg = hoursByEmployee(data.shifts, from, to, (x) => x.localId === local.id);
     return data.employees
-      .filter((e) => (e.active && e.locals.includes(local.id)) || agg[e.id])
+      .filter((e) => inGroup(e) && ((e.active && e.locals.includes(local.id)) || agg[e.id]))
       .sort(lk.byGroupThenName)
       .map((e) => ({
         e,
@@ -50,7 +51,8 @@ export function MonthView({ local, month, onPickDay }) {
         night: agg[e.id]?.night || 0,
         offs: data.daysOff.filter((o) => o.empId === e.id && o.date >= from && o.date <= to).length,
       }));
-  }, [data, from, to, local.id, lk]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, from, to, local.id, lk, groupId]);
 
   const totals = summary.reduce((t, r) => ({ days: t.days + r.days, hours: t.hours + r.hours, night: t.night + r.night }), { days: 0, hours: 0, night: 0 });
 

@@ -22,6 +22,16 @@ export const GROUP_COLORS = [
   ['#7D6BD6', '#e7e3f8'],
 ];
 
+/** "Solicitar PRL" email template (Configuración → Solicitud PRL). */
+export const PRL_EMAIL_TEMPLATE = {
+  subject: 'Solicitud de formación PRL: {NOMBRE}',
+  template:
+    'Hola,\n\nSolicito la formación en Prevención de Riesgos Laborales (PRL) para {NOMBRE}, con DNI {DNI}, dado/a de alta el {FECHA_ALTA} en {EMPRESA}.\n\nGracias.',
+};
+
+/** Max size per worker file (Ficheros section). */
+export const MAX_FILE_MB = 3;
+
 export const DEFAULT_EMAIL_TEMPLATE = {
   subject: 'Solicitud de alta: {NOMBRE}',
   template:
@@ -34,6 +44,8 @@ export const TEMPLATE_VARS = ['{NOMBRE}', '{DNI}', '{FECHA_ALTA}', '{EMPRESA}', 
 export const DEFAULT_SETTINGS = {
   gestoriaEmail: 'prueba@gestoria.com',
   ...DEFAULT_EMAIL_TEMPLATE,
+  prlSubject: PRL_EMAIL_TEMPLATE.subject,
+  prlTemplate: PRL_EMAIL_TEMPLATE.template,
 };
 
 /** Columns visible by default in the employees table. */

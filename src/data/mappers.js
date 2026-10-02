@@ -51,6 +51,7 @@ export const TABLES = [
       dni_anverso: e.dniFront,
       dni_reverso: e.dniBack,
       alta_solicitada: e.altaSolicitada,
+      prl_solicitado: e.prlSolicitado || null,
     }),
     fromRow: (r) => ({
       id: r.id,
@@ -76,6 +77,7 @@ export const TABLES = [
       dniFront: r.dni_anverso,
       dniBack: r.dni_reverso,
       altaSolicitada: r.alta_solicitada,
+      prlSolicitado: r.prl_solicitado,
     }),
   },
   {
@@ -90,7 +92,25 @@ export const TABLES = [
     toRow: (o) => ({ id: o.id, employee_id: o.empId, fecha: o.date }),
     fromRow: (r) => ({ id: r.id, empId: r.employee_id, date: r.fecha }),
   },
+  {
+    // Worker files. The file itself lives in Supabase Storage (bucket "ficheros"); this row is its metadata.
+    table: 'employee_files',
+    key: 'files',
+    toRow: (f) => ({ id: f.id, employee_id: f.empId, nombre: f.name, tamano: f.size, tipo: f.mime, ruta: f.path, subido: f.date }),
+    fromRow: (r) => ({ id: r.id, empId: r.employee_id, name: r.nombre, size: r.tamano, mime: r.tipo, path: r.ruta, date: r.subido }),
+  },
+  {
+    // Gross payroll amount typed by the user for a worker and period.
+    table: 'nominas',
+    key: 'nominas',
+    toRow: (n) => ({ id: n.id, employee_id: n.empId, desde: n.from, hasta: n.to, importe: n.amount }),
+    fromRow: (r) => ({ id: r.id, empId: r.employee_id, from: r.desde, to: r.hasta, amount: Number(r.importe) }),
+  },
 ];
 
-export const settingsToRow = (s) => ({ id: 1, gestoria_email: s.gestoriaEmail, asunto: s.subject, plantilla: s.template });
-export const settingsFromRow = (r) => ({ gestoriaEmail: r.gestoria_email, subject: r.asunto, template: r.plantilla });
+export const settingsToRow = (s) => ({
+  id: 1, gestoria_email: s.gestoriaEmail, asunto: s.subject, plantilla: s.template, asunto_prl: s.prlSubject, plantilla_prl: s.prlTemplate,
+});
+export const settingsFromRow = (r) => ({
+  gestoriaEmail: r.gestoria_email, subject: r.asunto, template: r.plantilla, prlSubject: r.asunto_prl, prlTemplate: r.plantilla_prl,
+});

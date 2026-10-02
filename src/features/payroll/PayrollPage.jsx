@@ -1,6 +1,8 @@
 /**
- * Horas y nóminas: hours and gross amount per worker for a week or a month,
- * split into "nómina" (up to contract) and "fuera de nómina". CSV export.
+ * Horas y nóminas: hours and gross amount per worker for a week or a month.
+ *  - Filter by local (pills, like the calendar) and company.
+ *  - The user types the "Importe nómina"; "Fuera de nómina" = Importe total − Importe nómina.
+ *  - Sortable columns (desktop). CSV export.
  * Days off are not paid: only scheduled hours count.
  */
 import { useMemo, useState } from 'react';
@@ -11,13 +13,25 @@ import { useIsMobile } from '@/hooks';
 import { Alert, Avatar, Button, EmptyState, IconButton, Segmented, Select } from '@/components/ui';
 import { Icon } from '@/components/ui/Icon';
 import { addDays, firstOfMonth, isoWeek, lastOfMonth, MONTHS, mondayOf, monthLabel, parseYmd, toYmd, weekRangeLabel } from '@/lib/dates';
-import { formatEuro, formatHours, fullName, initials } from '@/lib/format';
+import { formatEuro, formatHours, fullName, initials, parseDecimal } from '@/lib/format';
 import { downloadCsv } from '@/lib/utils';
 import { buildPayroll } from '@/domain/payroll';
+import * as actions from '@/domain/actions';
 import s from './payroll.module.css';
 
+const COLUMNS = [
+  { key: 'name', label: 'Trabajador', align: 'left' },
+  { key: 'day', label: 'Horas día' },
+  { key: 'night', label: 'Horas noche' },
+  { key: 'total', label: 'Total vs contrato', align: 'left', indent: true },
+  { key: 'rate', label: '€/h · nocturna' },
+  { key: 'nomina', label: 'Importe nómina' },
+  { key: 'fuera', label: 'Fuera de nómina' },
+  { key: 'cost', label: 'Importe total' },
+];
+
 export function PayrollPage() {
-  const { data } = useApp();
+  const { data, update } = useApp();
   const { openEmployee } = useNav();
   const lk = useLookups();
   const isMobile = useIsMobile();
@@ -25,6 +39,8 @@ export function PayrollPage() {
   const [weekStart, setWeekStart] = useState(() => toYmd(mondayOf(new Date())));
   const [month, setMonth] = useState(() => toYmd(firstOfMonth(new Date())));
   const [companyId, setCompanyId] = useState('all');
+  const [localId, setLocalId] = useState('all');
+  const [sort, setSort] = useState({ key: 'name', dir: 1 });
 
   const range = useMemo(() => {
     if (period === 'semana') {
@@ -36,7 +52,7 @@ export function PayrollPage() {
     return { from: toYmd(firstOfMonth(m)), to: toYmd(last), days: last.getDate(), label: monthLabel(m), file: `${MONTHS[m.getMonth()]}_${m.getFullYear()}` };
   }, [period, weekStart, month]);
 
-  const report = useMemo(() => buildPayroll(data, { ...range, companyId }), [data, range, companyId]);
+  const report = useMemo(() => buildPayroll(data, { ...range, companyId, localId, sort }), [data, range, companyId, localId, sort]);
   const missingNight = report.groups.flatMap((g) => g.rows.filter((r) => r.missingNightRate).map((r) => r.employee));
 
   const move = (n) => {
@@ -47,25 +63,49 @@ export function PayrollPage() {
     }
   };
 
+  /** Saves the typed nómina. Empty or invalid → cleared. */
+  const setNomina = (empId, text) => {
+    const n = parseDecimal(text);
+    update(actions.setNomina, empId, range.from, range.to, n == null || Number.isNaN(n) ? null : n);
+  };
+
+  const toggleSort = (key) => setSort((cur) => ({ key, dir: cur.key === key ? -cur.dir : key === 'name' ? 1 : -1 }));
+
   function exportCsv() {
     const r2 = (n) => formatHours(Math.round(n * 100) / 100);
-    const header = ['Empresa', 'Trabajador', 'Grupo', 'Horas diurnas', 'Horas nocturnas', 'Horas totales', 'Horas contrato', 'Horas en nómina', 'Horas fuera de nómina', '€/h', '€/h nocturna', 'Importe nómina', 'Importe fuera de nómina', 'Importe total'];
+    const header = ['Empresa', 'Trabajador', 'Grupo', 'Horas diurnas', 'Horas nocturnas', 'Horas totales', 'Horas contrato', '€/h', '€/h nocturna', 'Importe nómina', 'Fuera de nómina', 'Importe total'];
     const rows = report.groups.flatMap((g) =>
       g.rows.map((r) => {
         const e = r.employee;
-        return [g.company.name, fullName(e), lk.groupName(e), r2(r.dayHours), r2(r.nightHours), r2(r.totalHours), r.contract != null ? r2(r.contract) : '', r2(r.inside), r2(r.outside), e.rate != null ? r2(e.rate) : '', e.nightRate != null ? r2(e.nightRate) : 'normal', r2(r.costInside), r2(r.costOutside), r2(r.cost)];
+        return [g.company.name, fullName(e), lk.groupName(e), r2(r.dayHours), r2(r.nightHours), r2(r.totalHours), r.contract != null ? r2(r.contract) : '', e.rate != null ? r2(e.rate) : '', e.nightRate != null ? r2(e.nightRate) : '', r.nomina != null ? r2(r.nomina) : '', r.fuera != null ? r2(r.fuera) : '', r2(r.cost)];
       }),
     );
     downloadCsv(header, rows, `horas_${range.file}.csv`);
   }
 
   const t = report.totals;
+  const localPills = [
+    { id: 'all', name: 'Todos', count: data.employees.filter((e) => e.active).length },
+    ...data.locals.map((l) => ({ id: l.id, name: l.name, count: data.employees.filter((e) => e.active && e.locals.includes(l.id)).length })),
+  ];
 
   return (
     <div className="page" style={{ maxWidth: 1400 }}>
       <div>
         <h1 className="page-title">Horas y nóminas</h1>
         <p className="page-subtitle">Horas asignadas en el calendario e importe bruto por trabajador. Los días libres no se pagan.</p>
+      </div>
+
+      <div className={s.localsWrap}>
+        <span className={s.eyebrow}>Local</span>
+        <div className={s.locals}>
+          {localPills.map((l) => (
+            <button key={l.id} className={`${s.localPill} ${localId === l.id ? s.localOn : ''}`} onClick={() => setLocalId(l.id)}>
+              {l.name}
+              <span className={s.count}>{l.count}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="toolbar">
@@ -84,8 +124,8 @@ export function PayrollPage() {
 
       <div className={s.stats}>
         <div className={`${s.stat} ${s.statDark}`}><span>Total a pagar (bruto)</span><strong>{formatEuro(t.cost)}</strong></div>
-        <div className={`card ${s.stat}`}><span>Importe nómina</span><strong>{formatEuro(t.costInside)}</strong><small>{formatHours(t.inside)} h dentro de contrato</small></div>
-        <div className={`card ${s.stat}`}><span>Fuera de nómina</span><strong style={{ color: 'var(--warning-ink)' }}>{formatEuro(t.costOutside)}</strong><small>{formatHours(t.outside)} h por encima del contrato</small></div>
+        <div className={`card ${s.stat}`}><span>Importe nómina</span><strong>{formatEuro(t.nomina)}</strong><small>{t.filled} de {t.count} nóminas introducidas</small></div>
+        <div className={`card ${s.stat}`}><span>Fuera de nómina</span><strong style={{ color: 'var(--warning-ink)' }}>{formatEuro(t.fuera)}</strong><small>Importe total − importe nómina</small></div>
         <div className={`card ${s.stat}`}><span>Horas totales</span><strong>{formatHours(t.totalHours)} h</strong><small>{formatHours(t.totalHours - t.nightHours)} h día · {formatHours(t.nightHours)} h noche</small></div>
       </div>
 
@@ -109,19 +149,27 @@ export function PayrollPage() {
             </div>
             <div className={s.groupTotal}>
               <strong>{formatEuro(g.subtotal.cost)}</strong>
-              <span className="muted">Nómina {formatEuro(g.subtotal.costInside)} · Fuera {formatEuro(g.subtotal.costOutside)}</span>
+              <span className="muted">Nómina {formatEuro(g.subtotal.nomina)} · Fuera {formatEuro(g.subtotal.fuera)}</span>
             </div>
           </header>
 
           {isMobile ? (
-            g.rows.map((r) => <MobileRow key={r.employee.id} r={r} lk={lk} onOpen={openEmployee} />)
+            g.rows.map((r) => <MobileRow key={r.employee.id} r={r} lk={lk} onOpen={openEmployee} onNomina={setNomina} />)
           ) : (
             <div className={s.scroll}>
               <div className={s.table}>
                 <div className={`${s.row} ${s.head}`}>
-                  <span>Trabajador</span><span>Horas día</span><span>Horas noche</span><span className={s.left}>Total vs contrato</span><span>€/h · nocturna</span><span>Importe nómina</span><span>Fuera de nómina</span><span>Importe total</span>
+                  {COLUMNS.map((c) => {
+                    const on = sort.key === c.key;
+                    return (
+                      <button key={c.key} className={`${s.th} ${c.align === 'left' ? s.thLeft : ''} ${c.indent ? s.left : ''}`} style={{ color: on ? 'var(--ink)' : undefined }} onClick={() => toggleSort(c.key)}>
+                        {c.label}
+                        <Icon name={!on ? 'sort' : sort.dir === 1 ? 'up' : 'down'} size={13} color={on ? 'currentColor' : '#c9c5bc'} />
+                      </button>
+                    );
+                  })}
                 </div>
-                {g.rows.map((r) => <DesktopRow key={r.employee.id} r={r} lk={lk} onOpen={openEmployee} />)}
+                {g.rows.map((r) => <DesktopRow key={r.employee.id} r={r} lk={lk} onOpen={openEmployee} onNomina={setNomina} />)}
               </div>
             </div>
           )}
@@ -132,10 +180,34 @@ export function PayrollPage() {
 }
 
 const contractText = (r) => (r.contract != null ? `de ${formatHours(r.contract)} h` : 'sin contrato');
-const splitText = (r) => (r.contract != null ? `${formatHours(r.inside)} h en nómina · ${formatHours(r.outside)} h fuera` : 'Sin horas de contrato: todo fuera de nómina');
+const overText = (r) => (r.contract == null ? 'Sin horas de contrato' : r.overContract > 0 ? `${formatHours(r.overContract)} h por encima del contrato` : 'Dentro del contrato');
 const pct = (r) => (r.contract ? Math.min(100, (r.totalHours / r.contract) * 100) : 0);
+const fueraColor = (r) => (r.fuera != null && r.fuera > 0.004 ? 'var(--warning-ink)' : 'var(--ink-4)');
 
-function DesktopRow({ r, lk, onOpen }) {
+/** Text input for the nómina. Keeps what the user types until blur, then saves. */
+function NominaInput({ r, onNomina, width = 106 }) {
+  const [text, setText] = useState(null);
+  const shown = text ?? (r.nomina != null ? String(r.nomina).replace('.', ',') : '');
+  return (
+    <input
+      className={s.nominaInput}
+      style={{ width }}
+      inputMode="decimal"
+      placeholder="0,00"
+      aria-label="Importe nómina"
+      value={shown}
+      onClick={(ev) => ev.stopPropagation()}
+      onChange={(ev) => setText(ev.target.value)}
+      onBlur={() => {
+        if (text != null) onNomina(r.employee.id, text);
+        setText(null);
+      }}
+      onKeyDown={(ev) => ev.key === 'Enter' && ev.currentTarget.blur()}
+    />
+  );
+}
+
+function DesktopRow({ r, lk, onOpen, onNomina }) {
   const e = r.employee;
   return (
     <div className={s.row} onClick={() => onOpen(e.id)} style={{ cursor: 'pointer', opacity: e.active ? 1 : 0.6 }}>
@@ -147,30 +219,33 @@ function DesktopRow({ r, lk, onOpen }) {
       <span className={s.strong}>{r.missingNightRate && <Icon name="alert" size={14} strokeWidth={2.4} color="var(--warning-ink)" />}{formatHours(r.nightHours)} h</span>
       <span className={s.contract}>
         <span><strong>{formatHours(r.totalHours)} h</strong> <small className="muted">{contractText(r)}</small></span>
-        <span className={s.bar}><span style={{ width: `${pct(r)}%`, background: r.outside > 0 ? 'var(--orange)' : 'var(--teal)' }} /></span>
-        <small className="muted">{splitText(r)}</small>
+        <span className={s.bar}><span style={{ width: `${pct(r)}%`, background: r.overContract > 0 ? 'var(--orange)' : 'var(--teal)' }} /></span>
+        <small className="muted">{overText(r)}</small>
       </span>
-      <span className={s.rates}>{e.rate != null ? formatEuro(e.rate) : 'Sin €/h'}<small style={{ color: e.nightRate != null ? undefined : 'var(--warning-ink)' }}>{e.nightRate != null ? formatEuro(e.nightRate) : '= €/h normal'}</small></span>
-      <span>{formatEuro(r.costInside)}</span>
-      <span className={s.strong} style={{ color: r.outside > 0 ? 'var(--warning-ink)' : 'var(--ink-4)' }}>{formatEuro(r.costOutside)}</span>
+      <span className={s.rates}>{e.rate != null ? formatEuro(e.rate) : 'Sin €/h'}<small>{e.nightRate != null ? formatEuro(e.nightRate) : '= €/h normal'}</small></span>
+      <span className={s.end}><NominaInput r={r} onNomina={onNomina} /></span>
+      <span className={s.strong} style={{ color: fueraColor(r) }}>{r.fuera != null ? formatEuro(r.fuera) : '—'}</span>
       <span className={s.total}>{formatEuro(r.cost)}</span>
     </div>
   );
 }
 
-function MobileRow({ r, lk, onOpen }) {
+function MobileRow({ r, lk, onOpen, onNomina }) {
   const e = r.employee;
   return (
-    <button className={s.mRow} onClick={() => onOpen(e.id)}>
+    <div className={s.mRow} onClick={() => onOpen(e.id)}>
       <span className={s.mTop}>
         <Avatar text={initials(e)} palette={lk.paletteOf(e)} size={34} />
         <strong className={s.mName}>{fullName(e)}</strong>
         <strong>{formatEuro(r.cost)}</strong>
       </span>
       <span style={{ fontSize: 13.5 }}>{formatHours(r.dayHours)} h día · {formatHours(r.nightHours)} h noche · {formatHours(r.totalHours)} h {contractText(r)}</span>
-      <span className={s.bar}><span style={{ width: `${pct(r)}%`, background: r.outside > 0 ? 'var(--orange)' : 'var(--teal)' }} /></span>
-      <span style={{ fontSize: 13.5 }}>Nómina <strong>{formatEuro(r.costInside)}</strong> · <span style={{ color: r.outside > 0 ? 'var(--warning-ink)' : undefined }}>Fuera <strong>{formatEuro(r.costOutside)}</strong></span></span>
-      <small className="muted">{splitText(r)}</small>
-    </button>
+      <span className={s.bar}><span style={{ width: `${pct(r)}%`, background: r.overContract > 0 ? 'var(--orange)' : 'var(--teal)' }} /></span>
+      <span className={s.mNomina}>
+        <label onClick={(ev) => ev.stopPropagation()}>Nómina <NominaInput r={r} onNomina={onNomina} width={110} /></label>
+        <span style={{ color: fueraColor(r) }}>Fuera <strong>{r.fuera != null ? formatEuro(r.fuera) : '—'}</strong></span>
+      </span>
+      <small className="muted">{overText(r)}</small>
+    </div>
   );
 }

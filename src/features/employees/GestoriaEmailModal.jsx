@@ -1,6 +1,6 @@
 /**
- * "Solicitar alta" email to the gestoría, pre-filled from the template in
- * Configuración. Opens the user's mail program (mailto). Browsers cannot attach
+ * Gestoría request email ("Solicitar alta" or "Solicitar PRL"), pre-filled from
+ * the matching template in Configuración. Opens the user's mail program (mailto). Browsers cannot attach
  * files through mailto, so DNI images are offered as downloads.
  *
  * Future: send automatically with attachments via a Supabase Edge Function.
@@ -13,12 +13,14 @@ import { downloadFile } from '@/lib/utils';
 import * as actions from '@/domain/actions';
 import s from './employees.module.css';
 
-export function GestoriaEmailModal({ employee: e, onClose }) {
+/** kind: 'alta' | 'prl' */
+export function GestoriaEmailModal({ kind = 'alta', employee: e, onClose }) {
+  const isPrl = kind === 'prl';
   const { data, update, showToast } = useApp();
   const [mail, setMail] = useState(() => ({
     to: data.settings.gestoriaEmail,
-    subject: fillTemplate(data.settings.subject, e, data),
-    body: fillTemplate(data.settings.template, e, data),
+    subject: fillTemplate(isPrl ? data.settings.prlSubject : data.settings.subject, e, data),
+    body: fillTemplate(isPrl ? data.settings.prlTemplate : data.settings.template, e, data),
   }));
   const set = (k) => (v) => setMail((m) => ({ ...m, [k]: v }));
   const hasImages = Boolean(e.dniFront || e.dniBack);
@@ -36,14 +38,14 @@ export function GestoriaEmailModal({ employee: e, onClose }) {
 
   const markSent = () =>
     setTimeout(() => {
-      update(actions.markAltaRequested, e.id);
-      showToast('Solicitud de alta preparada en tu correo');
+      update(isPrl ? actions.markPrlRequested : actions.markAltaRequested, e.id);
+      showToast(isPrl ? 'Solicitud de PRL preparada en tu correo' : 'Solicitud de alta preparada en tu correo');
       onClose();
     }, 300); // let the browser follow the mailto link first
 
   return (
     <Modal
-      title="Solicitar alta a la gestoría"
+      title={isPrl ? 'Solicitar PRL a la gestoría' : 'Solicitar alta a la gestoría'}
       onClose={onClose}
       width={580}
       footer={

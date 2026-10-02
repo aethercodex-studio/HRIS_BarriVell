@@ -19,6 +19,9 @@ import { ShiftEditor } from './ShiftEditor';
 import { DayOffModal } from './DayOffModal';
 import s from './calendar.module.css';
 
+/** 'Camarero' → 'Camareros', 'Jefe de cocina' → 'Jefes de cocina' */
+const pluralize = (name) => name.replace(/^(\S+)/, (w) => w + (/[aeiouáéó]$/i.test(w) ? 's' : 'es'));
+
 export function CalendarPage() {
   const { data, update, confirm, showToast } = useApp();
   const { localId: savedLocal, setLocalId, go, openEmployee } = useNav();
@@ -30,13 +33,17 @@ export function CalendarPage() {
   const [month, setMonth] = useState(() => toYmd(firstOfMonth(new Date())));
   const [mobileDay, setMobileDay] = useState(() => weekdayIndex(new Date()));
   const [highlight, setHighlight] = useState(null); // empId shown on top, others dimmed
+  const [groupId, setGroupId] = useState('all'); // Camareros / Cocineros / … / Todos
   const [editor, setEditor] = useState(null); // { id?, empId, date, start, end }
   const [dayOff, setDayOff] = useState(null); // { mode: 'add'|'edit', empId, date }
 
   const dates = useMemo(() => weekDates(parseYmd(weekStart)), [weekStart]);
   const workers = useMemo(
-    () => (local ? data.employees.filter((e) => e.active && e.locals.includes(local.id)).sort(lk.byGroupThenName) : []),
-    [data.employees, local, lk],
+    () =>
+      local
+        ? data.employees.filter((e) => e.active && e.locals.includes(local.id) && (groupId === 'all' || e.groupId === groupId)).sort(lk.byGroupThenName)
+        : [],
+    [data.employees, local, lk, groupId],
   );
 
   // Workers with night hours this week but no night rate → warning banner.
@@ -116,6 +123,12 @@ export function CalendarPage() {
           <IconButton icon="right" label="Siguiente" onClick={() => shiftPeriod(1)} className={s.navBtn} />
         </div>
         <strong>{view === 'semana' ? weekRangeLabel(parseYmd(weekStart)) : monthLabel(parseYmd(month))}</strong>
+        {/* Group filter: one button per group (new groups appear automatically) + Todos */}
+        <Segmented
+          value={groupId}
+          onChange={(v) => { setGroupId(v); setHighlight(null); }}
+          options={[...data.groups.map((g) => ({ value: g.id, label: pluralize(g.name) })), { value: 'all', label: 'Todos' }]}
+        />
         {view === 'semana' && (
           <div className={s.actions}>
             <Button variant="primary" icon="printer" onClick={() => printWeek(data, local.id, weekStart)}>Imprimir semana</Button>
@@ -174,6 +187,7 @@ export function CalendarPage() {
         <MonthView
           local={local}
           month={month}
+          groupId={groupId}
           onPickDay={(date) => {
             setView('semana');
             setWeekStart(toYmd(mondayOf(parseYmd(date))));

@@ -1,5 +1,5 @@
 /**
- * Configuración: companies & locals, worker groups, gestoría email.
+ * Configuración: companies & locals, worker groups, gestoría emails (alta and PRL).
  */
 import { useState } from 'react';
 import { Segmented } from '@/components/ui';
@@ -10,7 +10,8 @@ import { GestoriaSettings } from './GestoriaSettings';
 const TABS = [
   { value: 'empresas', label: 'Empresas y locales', Component: CompaniesSettings },
   { value: 'grupos', label: 'Grupos', Component: GroupsSettings },
-  { value: 'gestoria', label: 'Gestoría', Component: GestoriaSettings },
+  { value: 'gestoria', label: 'Alta gestoría', Component: () => <GestoriaSettings kind="alta" /> },
+  { value: 'prl', label: 'Solicitud PRL', Component: () => <GestoriaSettings kind="prl" /> },
 ];
 
 export function SettingsPage() {

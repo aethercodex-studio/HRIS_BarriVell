@@ -52,12 +52,38 @@ export function reactivateEmployee(draft, id) {
 
 export function deleteEmployee(draft, id) {
   draft.employees = draft.employees.filter((e) => e.id !== id);
+  draft.files = draft.files.filter((f) => f.empId !== id);
+  draft.nominas = draft.nominas.filter((n) => n.empId !== id);
   draft.shifts = draft.shifts.filter((s) => s.empId !== id);
   draft.daysOff = draft.daysOff.filter((o) => o.empId !== id);
 }
 
 export function markAltaRequested(draft, id) {
   updateEmployee(draft, id, { altaSolicitada: todayYmd() });
+}
+
+export function markPrlRequested(draft, id) {
+  updateEmployee(draft, id, { prlSolicitado: todayYmd() });
+}
+
+/* ───────────── Files ───────────── */
+
+/** Registers an uploaded file (upload itself is done by the repository). */
+export function addFile(draft, { empId, name, size, mime, path }) {
+  draft.files.push({ id: uid('f'), empId, name, size, mime, path, date: todayYmd() });
+}
+
+export function removeFile(draft, id) {
+  draft.files = draft.files.filter((f) => f.id !== id);
+}
+
+/* ───────────── Nóminas ───────────── */
+
+/** Stores (or clears, when amount is null) the payroll amount for a worker and period. */
+export function setNomina(draft, empId, from, to, amount) {
+  const id = `${empId}|${from}|${to}`;
+  draft.nominas = draft.nominas.filter((n) => n.id !== id);
+  if (amount != null) draft.nominas.push({ id, empId, from, to, amount });
 }
 
 /* ───────────── Shifts & days off ───────────── */

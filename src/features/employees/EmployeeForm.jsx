@@ -28,6 +28,9 @@ export function EmployeeForm({ draft, setDraft, errors, isNew, employeeId }) {
   const { data } = useApp();
   const lk = useLookups();
   const set = (key) => (value) => setDraft((d) => ({ ...d, [key]: value }));
+  // €/h nocturna follows €/h until the user types a different night rate.
+  const setRate = (value) =>
+    setDraft((d) => ({ ...d, rate: value, nightRate: d.nightRate === '' || d.nightRate === d.rate ? value : d.nightRate }));
   const toggleLocal = (id) => setDraft((d) => ({ ...d, locals: d.locals.includes(id) ? d.locals.filter((x) => x !== id) : [...d.locals, id] }));
 
   async function pickImage(key, file) {
@@ -58,8 +61,8 @@ export function EmployeeForm({ draft, setDraft, errors, isNew, employeeId }) {
         <Field label="Grupo">
           <Select value={draft.groupId} onChange={set('groupId')} options={[{ value: '', label: 'Sin grupo' }, ...data.groups.map((g) => ({ value: g.id, label: g.name }))]} />
         </Field>
-        <Field label="€/h" error={errors.rate}><TextInput inputMode="decimal" value={draft.rate} onChange={set('rate')} placeholder="12,50" /></Field>
-        <Field label="€/h nocturna (22:00–06:00)" error={errors.nightRate}><TextInput inputMode="decimal" value={draft.nightRate} onChange={set('nightRate')} placeholder="Vacío = igual que €/h" /></Field>
+        <Field label="€/h" error={errors.rate}><TextInput inputMode="decimal" value={draft.rate} onChange={setRate} placeholder="12,50" /></Field>
+        <Field label="€/h nocturna (22:00–06:00)" error={errors.nightRate}><TextInput inputMode="decimal" value={draft.nightRate} onChange={set('nightRate')} placeholder="Igual que €/h" /></Field>
         <Field label="Horas de contrato / semana" error={errors.contractHours}><TextInput inputMode="decimal" value={draft.contractHours} onChange={set('contractHours')} placeholder="40" /></Field>
         <div className={s.info}>
           <span className={s.infoLabel}>PRL hecho</span>

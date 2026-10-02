@@ -1,9 +1,10 @@
 /**
  * Lays out the shifts of one day in the time grid. Overlapping shifts are
- * placed side by side in "lanes" (like Google Calendar).
+ * placed side by side in "lanes".
  *
- * Ordering is stable: shifts that start at the same time keep the worker
- * order of the calendar, so resizing one never makes cards swap places.
+ * Lanes are assigned in WORKER ORDER (not by start time), so moving or
+ * resizing a shift never makes cards swap places: a card only changes lane
+ * when it would otherwise overlap another shift in its lane.
  */
 import { GRID_START_MIN } from '@/config/constants';
 import { toMinutes, shiftHours, MINUTES_PER_DAY } from '@/lib/time';
@@ -22,30 +23,30 @@ export function layoutDay(shifts, workerOrder) {
       const endMin = Math.min(MINUTES_PER_DAY, startMin + hours.total * 60);
       return { shift, startMin, endMin, hours, lane: 0, lanes: 1 };
     })
-    .sort(
-      (x, y) =>
-        x.startMin - y.startMin ||
-        (workerOrder[x.shift.empId] ?? 999) - (workerOrder[y.shift.empId] ?? 999) ||
-        String(x.shift.id).localeCompare(String(y.shift.id)),
-    );
+    .sort((x, y) => x.startMin - y.startMin);
+
+  const byWorker = (x, y) =>
+    (workerOrder[x.shift.empId] ?? 999) - (workerOrder[y.shift.empId] ?? 999) || String(x.shift.id).localeCompare(String(y.shift.id));
+  const overlaps = (a, b) => a.startMin < b.endMin && b.startMin < a.endMin;
 
   let maxLanes = 1;
   let cluster = [];
   let clusterEnd = -1;
 
+  // A cluster = shifts connected by overlaps. Lanes are computed per cluster.
   const flush = () => {
-    const laneEnds = [];
-    for (const it of cluster) {
-      let lane = laneEnds.findIndex((end) => end <= it.startMin);
+    const lanes = [];
+    for (const it of [...cluster].sort(byWorker)) {
+      let lane = lanes.findIndex((list) => list.every((o) => !overlaps(o, it)));
       if (lane < 0) {
-        lane = laneEnds.length;
-        laneEnds.push(0);
+        lane = lanes.length;
+        lanes.push([]);
       }
-      laneEnds[lane] = it.endMin;
+      lanes[lane].push(it);
       it.lane = lane;
     }
-    for (const it of cluster) it.lanes = laneEnds.length;
-    maxLanes = Math.max(maxLanes, laneEnds.length);
+    for (const it of cluster) it.lanes = lanes.length;
+    maxLanes = Math.max(maxLanes, lanes.length);
     cluster = [];
     clusterEnd = -1;
   };
